@@ -55,28 +55,36 @@ else
 fi
 
 
-prev_title=$(./sp current | grep Title | awk -F 'Title        ' '{print $2}')
-parec --format=s16le -d record-n-play.monitor | lame -r -q 3 --abr 192 - "$folder/${prev_title}.mp3" > /dev/null &1>/dev/null
-echo "Enregistrant: $prev_title"
+first=true
 while true
 do
-    title=$(./sp current | grep Title | awk -F 'Title        ' '{print $2}')
-    if [[ $prev_title != $title ]]; then
-	echo "Canvi de canço"
+    eval $(./sp eval)
+    if [[ $prev_title != "$SPOTIFY_TITLE" || $first = true ]]; then
+	if [[ $first != true ]]; then
+	    echo "Canvi de canço"
+	    killall -q parec lame
+	fi
+	first=false
+	
 	# Mirem que el fitxer no existeixi
 	existeix=false
-	for f in ${folder}/*.mp3; do if [[ ${f/$folder'/'/} = ${title}.mp3 ]]; then existeix=true; fi; done
-	if [[ $existeix = false ]]; then
+	for f in ${folder}/*.mp3; do if [[ ${f/$folder'/'/} = ${SPOTIFY_TITLE}.mp3 ]]; then existeix=true; break; fi; done
+
+	# Si és un anunci no l'enregistrem
+	if [[ $SPOTIFY_TITLE = "Spotify" ]]; then anunci=true; echo -e "Anunci\n"; else anunci=false; fi
+	
+	if [[ $existeix = false && $anunci = false ]]; then
 	    existeix=true
 	    sleep 1
-	    echo "Enregistrant: $title"
-	    echo
-            killall -q parec lame
-	    parec --format=s16le -d record-n-play.monitor | lame -r -q 3 --abr 192 - "$folder/${title}.mp3" > /dev/null &1>/dev/null
-	else
-	    echo "La canço \"$title\", ja existeix"
-	    echo
+	    echo -e "Enregistrant: $SPOTIFY_TITLE\n"
+            parec --format=s16le -d record-n-play.monitor | \
+	    lame --tt "$SPOTIFY_TITLE"               \
+		 --ta "$SPOTIFY_ARTIST"              \
+		 --tl "$SPOTIFY_ALBUM"               \
+		 -r -q 3 --abr 192 - "$folder/${SPOTIFY_TITLE}.mp3" > /dev/null &1>/dev/null
+	elif [[ $existeix = true ]]; then
+	    echo -e "La canço \"$SPOTIFY_TITLE\", ja existeix\n"
 	fi
     fi
-    prev_title=$title
+    prev_title=$SPOTIFY_TITLE
 done
