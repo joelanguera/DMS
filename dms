@@ -1,0 +1,82 @@
+#!/bin/bash
+
+
+# UTILITY FUNCTIONS
+
+cleanup() {
+    pactl unload-module $module_id
+    killall -q parec lame
+    exit 0
+}
+
+function require {
+    hash $1 2>/dev/null || {
+	echo >&2 "Error: '$1' is required, but was not found."; exit 1;
+    }
+}
+
+
+# SETUP
+
+default_output=$(pacmd list-sinks | grep -A1 "* index" | grep -oP "<\K[^ >]+")
+default_output_index=$(pacmd list-sinks | grep "* index" | awk -F ': ' '{print $2}') 
+
+module_id=$(pactl load-module module-combine-sink sink_name=record-n-play slaves=$default_output sink_properties=device.description="Record-and-Play")
+
+# Agafem l'index del sink-input Spotify i l'afegim al combined sink
+index=$(pacmd list-sink-inputs | grep -B15 Spotify | grep index: | awk -F ': ' '{print $2}')
+pactl move-sink-input $index record-n-play
+
+# El combined sink tendeix a convertirse en el default system output device. Ho revertim
+pacmd set-default-sink $default_output_index
+
+# Exportem les variables perque les pugui fer servir cleanup
+export module_id
+
+
+# Assert standard Unix utilities are available.
+require grep
+require pulseaudio
+require lame
+require spotify
+
+trap "cleanup" SIGINT SIGTERM
+
+
+# MAIN
+folder="$1"
+
+if [[ -z "$folder" ]]; then
+    # No arguments given
+    echo "Entra el nom de la playlist"
+else
+    # Creem el directori on aniran les cançons
+    mkdir -p $folder
+fi
+
+
+prev_title=$(./sp current | grep Title | awk -F 'Title        ' '{print $2}')
+parec --format=s16le -d record-n-play.monitor | lame -r -q 3 --abr 192 - "$folder/${prev_title}.mp3" > /dev/null &1>/dev/null
+echo "Enregistrant: $prev_title"
+while true
+do
+    title=$(./sp current | grep Title | awk -F 'Title        ' '{print $2}')
+    if [[ $prev_title != $title ]]; then
+	echo "Canvi de canço"
+	# Mirem que el fitxer no existeixi
+	existeix=false
+	for f in ${folder}/*.mp3; do if [[ ${f/$folder'/'/} = ${title}.mp3 ]]; then existeix=true; fi; done
+	if [[ $existeix = false ]]; then
+	    existeix=true
+	    sleep 1
+	    echo "Enregistrant: $title"
+	    echo
+            killall -q parec lame
+	    parec --format=s16le -d record-n-play.monitor | lame -r -q 3 --abr 192 - "$folder/${title}.mp3" > /dev/null &1>/dev/null
+	else
+	    echo "La canço \"$title\", ja existeix"
+	    echo
+	fi
+    fi
+    prev_title=$title
+done
