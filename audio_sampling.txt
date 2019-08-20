@@ -1,0 +1,25 @@
+Sample Format
+=============
+The number of bits used to describe each sample.
+Common formats are 16 and 24 bits.
+
+
+Sample Rate
+===========
+The sample rate is the number of samples played in each second.
+Common sample rates are 44.1 kHz, 48 kHz and 96 kHz.
+
+
+Bit Rate
+========
+It's the number of bits in a given time period.
+Usually measured in kilobits per second ("kbps" or "kb/s").
+To calculate the bit rate, multiply the sample rate and the sample
+format:
+	The bit rate of an audio CD (705.6kb/s) is the sample rate
+	(44.1 kHz) multiplied by the sample format (16 bits).
+
+
+A provar:
+Fer servir lame amb Average Bitrate (ABR) i Variable bitrate (VBR).
+Mirar bit rate...

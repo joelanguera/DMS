@@ -127,6 +127,7 @@ function sp-eval {
   | grep --color=never -E "(title)|(album)|(artist)|(trackid)|(trackNumber)" \
   | sort -r \
   | sed 's/^\([^|]*\)\|/\U\1/' \
+  | sed 's/"/\x27/g' \
   | sed -E 's/\|/="/' \
   | sed -E 's/$/"/' \
   | sed -E 's/^/SPOTIFY_/'

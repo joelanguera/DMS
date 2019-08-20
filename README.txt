@@ -37,3 +37,8 @@ Poder enregistrar de la font que tu vulguis:
 	Per ex: dms list
 	I apareix tot un llistat de les fonts disponibles de descàrrega
 
+
+***BUGS***
+Bug al començar a enregistrar amb la canço "Safe & Sound":
+    lame: excess arg Heaven
+    

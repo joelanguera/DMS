@@ -58,6 +58,7 @@ fi
 first=true
 while true
 do
+    # Cançons que contenen " peta
     eval $(./sp eval)
     if [[ $prev_title != "$SPOTIFY_TITLE" || $first = true ]]; then
 	if [[ $first != true ]]; then
@@ -71,16 +72,24 @@ do
 	for f in ${folder}/*.mp3; do if [[ ${f/$folder'/'/} = ${SPOTIFY_TITLE}.mp3 ]]; then existeix=true; break; fi; done
 
 	# Si és un anunci no l'enregistrem
-	if [[ $SPOTIFY_TITLE = "Spotify" ]]; then anunci=true; echo -e "Anunci\n"; else anunci=false; fi
+	#if [[ $SPOTIFY_TITLE = "Spotify" || $SPOTIFY_TITLE = "Advertisement" ]]; then anunci=true; echo -e "Anunci\n"; else anunci=false; fi
+	if [[ $SPOTIFY_TRACKID == "spotify:ad:"* ]]; then
+	    anunci=true
+	    echo -e "Anunci\n"
+	else
+	    anunci=false
+	fi
+	
 	
 	if [[ $existeix = false && $anunci = false ]]; then
 	    existeix=true
-	    sleep 1
+	    #sleep 1
 	    echo -e "Enregistrant: $SPOTIFY_TITLE\n"
             parec --format=s16le -d record-n-play.monitor | \
 	    lame --tt "$SPOTIFY_TITLE"               \
 		 --ta "$SPOTIFY_ARTIST"              \
 		 --tl "$SPOTIFY_ALBUM"               \
+		 --tn "$SPOTIFY_TRACKID"             \
 		 -r -q 3 --abr 192 - "$folder/${SPOTIFY_TITLE}.mp3" > /dev/null &1>/dev/null
 	elif [[ $existeix = true ]]; then
 	    echo -e "La canço \"$SPOTIFY_TITLE\", ja existeix\n"
