@@ -126,10 +126,11 @@ function sp-eval {
   sp-metadata \
   | grep --color=never -E "(title)|(album)|(artist)|(trackid)|(trackNumber)" \
   | sort -r \
-  | sed 's/^\([^|]*\)\|/\U\1/' \
-  | sed 's/"/\x27/g' \
-  | sed -E 's/\|/="/' \
-  | sed -E 's/$/"/' \
+  | sed 's/^\([^|]*\)\|/\U\1/'                                                \
+  | sed 's/"/\x27/g'           `# replace " for ' due to variable assignments`\
+  | sed 's/\//-/g'             `# replace / for - due to naming issues (dms)` \
+  | sed -E 's/\|/="/'          \
+  | sed -E 's/$/"/'            \
   | sed -E 's/^/SPOTIFY_/'
 }
 

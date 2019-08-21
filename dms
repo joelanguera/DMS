@@ -44,21 +44,15 @@ trap "cleanup" SIGINT SIGTERM
 
 
 # MAIN
-folder="$1"
-
-if [[ -z "$folder" ]]; then
+if [[ -z "$1" ]]; then
     # No arguments given
-    echo "Entra el nom de la playlist"
-else
-    # Creem el directori on aniran les cançons
-    mkdir -p $folder
+    echo "Entra el nom de la biblioteca"
 fi
 
 
 first=true
 while true
 do
-    # Cançons que contenen " peta
     eval $(./sp eval)
     if [[ $prev_title != "$SPOTIFY_TITLE" || $first = true ]]; then
 	if [[ $first != true ]]; then
@@ -66,13 +60,22 @@ do
 	    killall -q parec lame
 	fi
 	first=false
+
+	# Creem directori corresponent
+	folder="$1/$SPOTIFY_ARTIST/$SPOTIFY_ALBUM"
+	mkdir -p "$folder"
 	
 	# Mirem que el fitxer no existeixi
 	existeix=false
-	for f in ${folder}/*.mp3; do if [[ ${f/$folder'/'/} = ${SPOTIFY_TITLE}.mp3 ]]; then existeix=true; break; fi; done
-
+	for f in ${folder}/*.mp3
+	do
+	    if [[ ${f/$folder'/'/} = ${SPOTIFY_TITLE}.mp3 ]]
+	    then existeix=true
+		 break
+	    fi
+	done
+	
 	# Si és un anunci no l'enregistrem
-	#if [[ $SPOTIFY_TITLE = "Spotify" || $SPOTIFY_TITLE = "Advertisement" ]]; then anunci=true; echo -e "Anunci\n"; else anunci=false; fi
 	if [[ $SPOTIFY_TRACKID == "spotify:ad:"* ]]; then
 	    anunci=true
 	    echo -e "Anunci\n"
@@ -82,14 +85,14 @@ do
 	
 	
 	if [[ $existeix = false && $anunci = false ]]; then
-	    existeix=true
+	    #existeix=true
 	    #sleep 1
 	    echo -e "Enregistrant: $SPOTIFY_TITLE\n"
             parec --format=s16le -d record-n-play.monitor | \
 	    lame --tt "$SPOTIFY_TITLE"               \
 		 --ta "$SPOTIFY_ARTIST"              \
 		 --tl "$SPOTIFY_ALBUM"               \
-		 --tn "$SPOTIFY_TRACKID"             \
+		 --tn "$SPOTIFY_TRACKNUMBER"         \
 		 -r -q 3 --abr 192 - "$folder/${SPOTIFY_TITLE}.mp3" > /dev/null &1>/dev/null
 	elif [[ $existeix = true ]]; then
 	    echo -e "La canço \"$SPOTIFY_TITLE\", ja existeix\n"
