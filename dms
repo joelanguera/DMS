@@ -18,6 +18,22 @@ function require {
 
 # SETUP
 
+# Check if arguments given
+if [[ -z "$1" ]]; then
+    # No arguments given
+    echo "Entra el nom de la biblioteca"
+    exit 1
+fi
+
+
+# Assert standard Unix utilities are available.
+require grep
+require pulseaudio
+require lame
+require spotify
+#require eyed3
+
+
 default_output=$(pacmd list-sinks | grep -A1 "* index" | grep -oP "<\K[^ >]+")
 default_output_index=$(pacmd list-sinks | grep "* index" | awk -F ': ' '{print $2}') 
 
@@ -34,36 +50,29 @@ pacmd set-default-sink $default_output_index
 export module_id
 
 
-# Assert standard Unix utilities are available.
-require grep
-require pulseaudio
-require lame
-require spotify
 
 trap "cleanup" SIGINT SIGTERM
 
 
 # MAIN
-if [[ -z "$1" ]]; then
-    # No arguments given
-    echo "Entra el nom de la biblioteca"
-fi
-
 
 first=true
 while true
 do
     eval $(./sp eval)
-    if [[ $prev_title != "$SPOTIFY_TITLE" || $first = true ]]; then
+    
+    if [[ $prev_title != "$SPOTIFY_TITLE" || $first = true ]]; then	
 	if [[ $first != true ]]; then
+	    # Afegim a l'anterior canço la seva caràtula
+	    eyeD3 --add-image "$folder/$cover_name:FRONT_COVER" "$folder/${prev_title}.mp3"
+
 	    echo "Canvi de canço"
 	    killall -q parec lame
 	fi
 	first=false
 
-	# Creem directori corresponent
-	folder="$1/$SPOTIFY_ARTIST/$SPOTIFY_ALBUM"
-	mkdir -p "$folder"
+	# Creem variable amb la ruta del directori corresponent
+	folder="$1/$SPOTIFY_ARTIST/$SPOTIFY_ALBUM/"
 	
 	# Mirem que el fitxer no existeixi
 	existeix=false
@@ -85,6 +94,8 @@ do
 	
 	
 	if [[ $existeix = false && $anunci = false ]]; then
+	    mkdir -p "$folder"
+
 	    #existeix=true
 	    #sleep 1
 	    echo -e "Enregistrant: $SPOTIFY_TITLE\n"
@@ -94,6 +105,13 @@ do
 		 --tl "$SPOTIFY_ALBUM"               \
 		 --tn "$SPOTIFY_TRACKNUMBER"         \
 		 -r -q 3 --abr 192 - "$folder/${SPOTIFY_TITLE}.mp3" > /dev/null &1>/dev/null
+
+	    # Descarreguem l'album cover
+	    cover_name=$(glyrc cover --artist "$SPOTIFY_ARTIST" --album "$SPOTIFY_ALBUM" -w "$folder" 2>&1 >/dev/null \
+			     | grep "$folder" \
+			     | awk -F "$folder" '{print $2}' \
+			     | sed s'/.$//')
+	    
 	elif [[ $existeix = true ]]; then
 	    echo -e "La canço \"$SPOTIFY_TITLE\", ja existeix\n"
 	fi
