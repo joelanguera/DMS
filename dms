@@ -61,7 +61,10 @@ while true
 do
     eval $(./sp eval)
     
-    if [[ $prev_title != "$SPOTIFY_TITLE" || $first = true ]]; then	
+    if [[ $prev_title != "$SPOTIFY_TITLE" || $first = true ]]; then
+	# falta controlar que no entri per canvi d'enunci.
+	# quan canvia l'anunci pot ser que canvii spotify_title
+	# i per tant torna a entrat pero no hauria
 	if [[ $first != true ]]; then
 	    # Afegim a l'anterior canço la seva caràtula
 	    eyeD3 --add-image "$folder/$cover_name:FRONT_COVER" "$folder/${prev_title}.mp3"
@@ -72,30 +75,17 @@ do
 	first=false
 
 	# Creem variable amb la ruta del directori corresponent
-	folder="$1/$SPOTIFY_ARTIST/$SPOTIFY_ALBUM///" # Les tres / son per identificar el nom de l'album cover posteriorment
-	
-	# Mirem que el fitxer no existeixi
-	existeix=false
-	for f in ${folder}/*.mp3
-	do
-	    if [[ ${f/$folder'/'/} = ${SPOTIFY_TITLE}.mp3 ]]
-	    then existeix=true
-		 break
-	    fi
-	done
-	
-	# Si és un anunci no l'enregistrem
-	if [[ $SPOTIFY_TRACKID == "spotify:ad:"* ]]; then
-	    anunci=true
-	    echo -e "Anunci\n"
-	else
-	    anunci=false
-	fi
+	folder="$1/$SPOTIFY_ARTIST/$SPOTIFY_ALBUM///"            # Les tres / son per identificar el nom de l'album cover posteriorment
 	
 	
-	if [[ $existeix = false && $anunci = false ]]; then
-	    mkdir -p "$folder"
+	if [[ -f "$folder/${SPOTIFY_TITLE}.mp3" ]]; then         # mirem que no existeixi
+	    echo -e "La canço \"$SPOTIFY_TITLE\", ja existeix\n"
 
+        elif [[ $SPOTIFY_TRACKID == "spotify:ad:"* ]]; then      # mirem que no sigui un anunci
+	    echo -e "Anunci\n"
+	    
+	else
+	    mkdir -p "$folder"
 	    #sleep 1
 	    echo -e "Enregistrant: $SPOTIFY_TITLE\n"
             parec --format=s16le -d record-n-play.monitor | \
@@ -110,9 +100,6 @@ do
 			     | grep -F "$folder" `# -F també busca caràcters especials`  \
 			     | awk -F '///' '{print $2}' \
 			     | sed s'/.$//')
-	    
-	elif [[ $existeix = true ]]; then
-	    echo -e "La canço \"$SPOTIFY_TITLE\", ja existeix\n"
 	fi
     fi
     prev_title=$SPOTIFY_TITLE
