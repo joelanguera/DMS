@@ -11,7 +11,16 @@ Windows systems.
 
 Amb PulseAudio creem un combined sink i hi afegim el sink-input d'spotify
 i el default_output del nostre ordinador. D'aquesta manera podrem enregistrar
-aquest combined-sink i tambe podem escolar el que estem enregistrant. 
+aquest combined-sink i tambe podem escolar el que estem enregistrant.
+
+
+***glyrc***
+Descarrega les portades dels albums
+
+
+***eyeD3***
+Afegim la portada de l'album a la canço
+
 
 
 -----LINKS-----
@@ -23,6 +32,8 @@ Enviar audio a Android
 https://superuser.com/questions/605445/how-to-stream-my-gnu-linux-audio-output-to-android-devices-over-wi-fi
 SOLUCIO
 https://askubuntu.com/questions/60837/record-a-programs-output-with-pulseaudio
+Bash exit codes:
+https://www.cyberciti.biz/faq/bash-get-exit-code-of-command/
 -----LINKS-----
 
 man pulse-cli-syntax

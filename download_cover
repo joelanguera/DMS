@@ -1,0 +1,9 @@
+#!/bin/bash
+
+hola=$(glyrc cover --artist "$SPOTIFY_ARTIST" --album "$SPOTIFY_ALBUM")
+status=$?
+echo
+echo "EXIT_CODE: $status"
+echo
+
+#problems with  let me go from MagSonics

@@ -68,6 +68,10 @@ do
 	if [[ $first != true ]]; then
 	    # Afegim a l'anterior canço la seva caràtula
 	    eyeD3 --add-image "$folder/$cover_name:FRONT_COVER" "$folder/${prev_title}.mp3"
+	    status=$?
+	    echo
+	    echo "EXIT_CODE: $status"
+	    echo
 
 	    echo "Canvi de canço"
 	    killall -q parec lame
@@ -100,6 +104,10 @@ do
 			     | grep -F "$folder" `# -F també busca caràcters especials`  \
 			     | awk -F '///' '{print $2}' \
 			     | sed s'/.$//')
+	    status=$?
+	    echo
+	    echo "EXIT_CODE: $status"
+	    echo
 	fi
     fi
     prev_title=$SPOTIFY_TITLE
