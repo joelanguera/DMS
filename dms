@@ -31,7 +31,8 @@ require grep
 require pulseaudio
 require lame
 require spotify
-#require eyed3
+require eyeD3
+require glyrc
 
 
 default_output=$(pacmd list-sinks | grep -A1 "* index" | grep -oP "<\K[^ >]+")
@@ -60,55 +61,72 @@ first=true
 while true
 do
     eval $(./sp eval)
+
+    if [[ $prev_trackid != "$SPOTIFY_TRACKID" && $SPOTIFY_TRACKID == "spotify:ad:"* ]]; then      # mirem que no sigui un anunci
+	echo -e "Anunci\n"
+	add_counter=$((add_counter + 1))
+    elif [[ $prev_trackid != "$SPOTIFY_TRACKID" && $SPOTIFY_TRACKID != "spotify:ad:"* ]]; then
+	add_counter=0
+	echo "add counter reseted"
+    fi
+
     
-    if [[ $prev_title != "$SPOTIFY_TITLE" || $first = true ]]; then
-	# falta controlar que no entri per canvi d'enunci.
-	# quan canvia l'anunci pot ser que canvii spotify_title
-	# i per tant torna a entrat pero no hauria
-	if [[ $first != true ]]; then
+    if [[ ($prev_trackid != "$SPOTIFY_TRACKID" || $first = true) && $add_counter < 2 ]]; then
+	if [[ $first != true && $prev_trackid != "spotify:ad:"* && $glyrc_exit_status == 0 ]]; then     # Despres d'un anunci no hem d'entrar, ja que no el guardem ni li posem cover
+
+	    if [[ $cover_name == *":"* ]]; then
+		mv "$folder/$cover_name" "$folder/${cover_name//:/;}"
+		cover_name=${cover_name//:/;}                    # traiem els ':' per eye3D
+	    fi
 	    # Afegim a l'anterior canço la seva caràtula
 	    eyeD3 --add-image "$folder/$cover_name:FRONT_COVER" "$folder/${prev_title}.mp3"
 	    status=$?
 	    echo
-	    echo "EXIT_CODE: $status"
+	    echo "EXIT_CODE (eyeD3): $status"
 	    echo
-
 	    echo "Canvi de canço"
 	    killall -q parec lame
 	fi
 	first=false
 
-	# Creem variable amb la ruta del directori corresponent
-	folder="$1/$SPOTIFY_ARTIST/$SPOTIFY_ALBUM///"            # Les tres / son per identificar el nom de l'album cover posteriorment
-	
-	
-	if [[ -f "$folder/${SPOTIFY_TITLE}.mp3" ]]; then         # mirem que no existeixi
-	    echo -e "La canço \"$SPOTIFY_TITLE\", ja existeix\n"
+	echo "add_counter: $add_counter"
 
-        elif [[ $SPOTIFY_TRACKID == "spotify:ad:"* ]]; then      # mirem que no sigui un anunci
-	    echo -e "Anunci\n"
+	
+	if [[ $add_counter < 1 ]]; then                              # Si es un anunci, no hem de fer res mes
+	    folder="$1/$SPOTIFY_ARTIST/$SPOTIFY_ALBUM///"            # Creem variable amb la ruta del directori corresponent
+	    folder=${folder//:/;}                                    # el path no pot contenir ':', ja que no son compatibles amb eyeD3
+	                                                             # Les tres / son per identificar el nom de l'album cover posteriorment
+	
+	    if [[ -f "$folder/${SPOTIFY_TITLE}.mp3" ]]; then         # mirem que no existeixi
+		echo -e "La canço \"$SPOTIFY_TITLE\", ja existeix\n"
 	    
-	else
-	    mkdir -p "$folder"
-	    #sleep 1
-	    echo -e "Enregistrant: $SPOTIFY_TITLE\n"
-            parec --format=s16le -d record-n-play.monitor | \
-	    lame --tt "$SPOTIFY_TITLE"               \
-		 --ta "$SPOTIFY_ARTIST"              \
-		 --tl "$SPOTIFY_ALBUM"               \
-		 --tn "$SPOTIFY_TRACKNUMBER"         \
-		 -r -q 3 --abr 192 - "$folder/${SPOTIFY_TITLE}.mp3" > /dev/null &1>/dev/null
-
-	    # Descarreguem l'album cover
-	    cover_name=$(glyrc cover --artist "$SPOTIFY_ARTIST" --album "$SPOTIFY_ALBUM" -w "$folder" 2>&1 >/dev/null \
-			     | grep -F "$folder" `# -F també busca caràcters especials`  \
-			     | awk -F '///' '{print $2}' \
-			     | sed s'/.$//')
-	    status=$?
-	    echo
-	    echo "EXIT_CODE: $status"
-	    echo
+	    else
+		mkdir -p "$folder"
+		#sleep 1
+		echo -e "Enregistrant: $SPOTIFY_TITLE\n"
+		parec --format=s16le -d record-n-play.monitor | \
+		    lame --tt "$SPOTIFY_TITLE"               \
+			 --ta "$SPOTIFY_ARTIST"              \
+			 --tl "$SPOTIFY_ALBUM"               \
+			 --tn "$SPOTIFY_TRACKNUMBER"         \
+			 -r -q 3 --abr 192 - "$folder/${SPOTIFY_TITLE}.mp3" > /dev/null &1>/dev/null
+		
+		# Descarreguem l'album cover
+		if [ ! -f "$folder"/*cover*.png ]; then              # mirem que no estigui ja descarregat
+		    cover_name=$(glyrc cover --artist "$SPOTIFY_ARTIST" --album "$SPOTIFY_ALBUM" -w "$folder" 2>&1 >/dev/null \
+				     | grep -F "$folder" `# -F també busca caràcters especials`  \
+				     | awk -F '///' '{print $2}'                                 \
+				     | sed s'/.$//'; exit ${PIPESTATUS[0]})
+		    glyrc_exit_status=$?
+		    echo "cover_name: $cover_name"
+		    echo "EXIT_CODE (glyrc): $glyrc_exit_status"
+		    echo
+		else
+		    echo "Album cover ja descarregat"
+		fi
+	    fi
 	fi
     fi
     prev_title=$SPOTIFY_TITLE
+    prev_trackid=$SPOTIFY_TRACKID	
 done

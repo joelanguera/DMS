@@ -1,0 +1,4 @@
+Causa del problema amb "ERROR: Invalid APIC picture type" trobada. eye3D fa servir ':' en la seva
+syntax. El path de carpetes contenidores d'album covers i l'album cover en si no poden contenir
+el caràcter ':'.
+
